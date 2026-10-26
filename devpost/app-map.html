@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>Coruscant — App map</title>
+  <style>
+    @font-face{font-family:Plex;src:url('../public/fonts/IBMPlexSans-Variable.ttf') format('truetype');font-weight:100 900;font-display:swap}
+    @font-face{font-family:PlexMono;src:url('../public/fonts/IBMPlexMono-Regular.ttf') format('truetype');font-weight:400;font-display:swap}
+    :root{--ink:#ede7d9;--muted:#b5afa2;--black:#07090a;--panel:#0d1012;--rule:#394044;--orange:#f59a48;--blue:#91bac4}
+    *{box-sizing:border-box}html{scroll-behavior:auto}body{margin:0;background:var(--black);color:var(--ink);font:17px/1.55 Plex,system-ui,sans-serif}
+    a{color:inherit;text-decoration-color:var(--orange);text-underline-offset:.22em}a:hover{color:var(--orange)}a:focus-visible,summary:focus-visible{outline:3px solid var(--orange);outline-offset:5px}
+    .skip{position:absolute;left:1rem;top:-5rem;background:var(--ink);color:var(--black);padding:.7rem;z-index:2}.skip:focus{top:1rem}
+    header,main,footer{max-width:1180px;margin:auto;padding:0 28px}header{padding-top:34px}.masthead,.section-head{display:flex;justify-content:space-between;gap:20px;align-items:baseline;border-bottom:1px solid var(--rule)}
+    .masthead{padding-bottom:18px}.brand{font:500 18px PlexMono,monospace;letter-spacing:.13em}.tag,.eyebrow,th,.step-num,.path{font:12px/1.5 PlexMono,monospace;letter-spacing:.05em}.tag,.eyebrow{color:var(--orange);text-transform:uppercase}
+    nav{display:flex;flex-wrap:wrap;gap:10px 24px;padding:15px 0;border-bottom:1px solid var(--rule);font:13px PlexMono,monospace}nav a{padding:5px 0}
+    h1{max-width:850px;font-weight:450;font-size:clamp(36px,5.5vw,66px);line-height:1.06;letter-spacing:-.035em;margin:29px 0 18px}h2{font-size:26px;font-weight:500;line-height:1.2;margin:0 0 13px}h3{font-size:18px;font-weight:550;line-height:1.3;margin:0 0 8px}p{margin:0 0 14px}.intro{max-width:900px;font-size:20px;line-height:1.5}.muted,small{color:var(--muted)}small{font-size:13px}.note{border-left:2px solid var(--orange);padding:2px 0 2px 15px;color:var(--muted)}
+    section{padding:31px 0;border-bottom:1px solid var(--rule)}.section-head{border:0;margin-bottom:18px}.section-head .eyebrow{white-space:nowrap}.section-head h2{margin:0}.grid{display:grid;grid-template-columns:1fr 1fr;gap:24px}.card{padding:20px;border:1px solid var(--rule);background:var(--panel)}.card p:last-child{margin-bottom:0}
+    .flow{list-style:none;padding:0;margin:23px 0;display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--rule);border:1px solid var(--rule)}.flow li{background:var(--panel);padding:18px;min-width:0}.flow strong{display:block;margin:5px 0}.flow p{font-size:14px;margin:0;color:var(--muted)}.step-num{color:var(--orange)}
+    .route{margin:0;padding:0;list-style:none;counter-reset:route}.route li{counter-increment:route;border-top:1px solid var(--rule);padding:19px 0 19px 48px;position:relative}.route li:before{content:'0' counter(route);position:absolute;left:0;top:20px;color:var(--orange);font:15px PlexMono,monospace}.route p{margin-bottom:7px}.path{overflow-wrap:anywhere;color:var(--blue)}
+    code,pre{font-family:PlexMono,monospace}code{font-size:.84em;overflow-wrap:anywhere}pre{font-size:13px;line-height:1.7;white-space:pre-wrap;overflow-wrap:anywhere;background:#030506;border:1px solid var(--rule);padding:16px;margin:10px 0 16px}
+    .lifecycle{font:14px/2 PlexMono,monospace;border-block:1px solid var(--rule);padding:12px 0;color:var(--blue)}.facts{margin:0}.facts dt{font-weight:550;margin-top:14px}.facts dt:first-child{margin-top:0}.facts dd{margin:4px 0 0;color:var(--muted)}
+    .tree{display:grid;grid-template-columns:minmax(180px,.8fr) 2fr;gap:10px 24px;margin:0}.tree dt{font:13px/1.7 PlexMono,monospace;color:var(--blue);overflow-wrap:anywhere}.tree dd{margin:0;font-size:15px}.tree>dt,.tree>dd{padding-top:10px;border-top:1px solid var(--rule)}
+    .table-wrap{overflow-x:auto}table{width:100%;border-collapse:collapse;font-size:15px}caption{text-align:left;margin:0 0 13px;color:var(--muted)}th,td{text-align:left;vertical-align:top;padding:12px 10px;border-bottom:1px solid var(--rule)}th{color:var(--muted)}td:first-child{min-width:98px}td code{white-space:normal}.roadmap td{font-size:14px}.roadmap td:first-child{font-family:PlexMono,monospace;font-size:12px;white-space:nowrap}
+    details{border:1px solid var(--rule);padding:16px 18px;margin:15px 0}summary{cursor:pointer;font-weight:550}details[open] summary{margin-bottom:18px}ul.compact{padding-left:20px;margin:8px 0 0}ul.compact li{margin:7px 0}footer{padding-top:24px;padding-bottom:34px;font-size:13px;color:var(--muted)}footer p{max-width:920px}.inline-links{display:flex;flex-wrap:wrap;gap:9px 23px}
+    @media(max-width:760px){header,main,footer{padding-inline:18px}.masthead{align-items:flex-start;flex-direction:column;gap:5px}.grid{grid-template-columns:1fr}.flow{grid-template-columns:1fr 1fr}.section-head{align-items:flex-start;flex-direction:column;gap:7px}.tree{grid-template-columns:1fr;gap:0}.tree dd{border:0;padding:2px 0 15px}.intro{font-size:18px}.card{padding:16px}th,td{padding:10px 7px}}
+    @media(max-width:420px){.flow{grid-template-columns:1fr}.flow li{padding:14px}h1{font-size:38px}.brand{font-size:16px}}
+    @media print{body{background:#fff;color:#111}header,main,footer{max-width:none}.muted,small,.facts dd,.flow p,.path{color:#333}.card,.flow li,pre{background:#fff}.skip,nav{display:none}details{break-inside:avoid}a{color:#111}section{break-inside:auto}}
+  </style>
+</head>
+<body>
+  <a class="skip" href="#overview">Skip to app map</a>
+  <header>
+    <div class="masthead"><span class="brand">CORUSCANT</span><span class="tag">System reference / local application</span></div>
+    <nav aria-label="App map sections"><a href="#overview">Connected system</a><a href="#route">One code route</a><a href="#records">Records &amp; permissions</a><a href="#source">Change locations</a><a href="#run">Run &amp; verify</a><a href="#roadmap">23-ID roadmap</a></nav>
+    <h1>One question.<br>Connected, saved records.</h1>
+    <p class="intro">StarSearch helps interpret an Earth-observation need. Mission Control carries the same request through commercial decisions and supplied results. SatSuite connects permitted material and an authored finding back to the original question.</p>
+    <p class="note">This is an offline reference map, not another screen in the app or a build checklist. Its source links open local files. They name stable symbols to search for; no interactive tour or extra exercise is assumed.</p>
+  </header>
+  <main>
+    <section id="overview" aria-labelledby="overview-title">
+      <div class="section-head"><h2 id="overview-title">The connected system</h2><span class="eyebrow">01 / visible action → durable fact</span></div>
+      <ol class="flow" aria-label="A request's path through the application">
+        <li><span class="step-num">01 / STARSEARCH</span><strong>Question, evidence, area</strong><p>Local interpretation, cited real or labeled demonstration catalog, deliberate circle and independent timing.</p></li>
+        <li><span class="step-num">02 / EXPLICIT REVIEW</span><strong>Planning or staff submission</strong><p>A tentative technical plan is optional. Saving Planning does not request staff review; submission is a separate action.</p></li>
+        <li><span class="step-num">03 / FASTIFY</span><strong>Current authority first</strong><p>Server checks context, membership and permissions, then recovers an identical committed receipt or validates a new action.</p></li>
+        <li><span class="step-num">04 / SQLITE</span><strong>Commit the whole change</strong><p>Request/version, related records, history and action receipt commit together. Failure rolls them back together.</p></li>
+        <li><span class="step-num">05 / MISSION CONTROL</span><strong>Quote → decision → schedule</strong><p>Private preparation, published offer, authorized acceptance and one recorded initial schedule remain separate decisions.</p></li>
+        <li><span class="step-num">06 / SATSUITE</span><strong>Reviewed, entitled result</strong><p>Exact-version publication plus separate access protects the pair/finding. Manual delivery records readiness; own points retain image identity.</p></li>
+      </ol>
+      <p class="muted">React/TypeScript and Three.js run in the browser. One loopback Fastify process serves both the interface and JSON API. Node's SQLite adapter and private local files retain the records; external services are limited to explicit public-source acquisition and optional phrase-only place lookup.</p>
+      <p class="inline-links"><a href="../server/app.ts">HTTP entry: buildApp</a><a href="../server/db/database.ts">Storage: transaction</a><a href="spec.md#spec-journey">Canonical system journey</a></p>
+    </section>
+
+    <section id="route" aria-labelledby="route-title">
+      <div class="section-head"><h2 id="route-title">A three-stop reference route</h2><span class="eyebrow">02 / quote acceptance</span></div>
+      <p>The build's restart exploration and acceptance-panel correction exposed two different obligations: a decision must persist once, and the interface must clearly finish that decision. These are useful stops when changing an agent-built workflow.</p>
+      <ol class="route">
+        <li><h3>Visible intent and completion</h3><p><a class="path" href="../client/features/workflow/QuoteCard.tsx">client/features/workflow/QuoteCard.tsx</a> · search <code>QuoteDecision</code>.</p><p>The customer reviews the exact offer and selected-plan snapshot. After confirmed success, the callback clears the local form and closes the panel. An uncertain response keeps the original recovery action.</p></li>
+        <li><h3>Authority and one atomic decision</h3><p><a class="path" href="../server/workflow.ts">server/workflow.ts</a> · search <code>executeWorkflow</code> and <code>acceptQuote</code>.</p><p>Current authority precedes receipt lookup. For a new decision, exact versions and the reviewed quote must still match; mutation, immutable acceptance and its receipt share a synchronous transaction.</p></li>
+        <li><h3>Evidence that distinguishes success from appearance</h3><p><a class="path" href="../tests/api/workflow.test.ts">tests/api/workflow.test.ts</a> · search <code>lost acceptance response</code>.</p><p>The check drops the response after a real commit, advances expiry and retries unchanged. It expects the original decision, rather than another acceptance. The related <a href="../tests/api/proposed-plan-process.test.ts">OS-process persistence check</a> reopens exact plan/manifest/receipt lineage after restart.</p></li>
+      </ol>
+      <div class="card"><h3>A practice to reuse</h3><p>State the observable result, find its commit boundary, then check a failure that could make the screen misleading. “Saved” is stronger when the same record survives restart; “completed” also needs the correct return and panel state. Use the <a href="prd.md#mission-02">quote behavior</a>, the code above and the <a href="checklist.md#hands-on-checkpoints">recorded checkpoint evidence</a> together. This route is available for reference; it is not a new required exercise.</p></div>
+    </section>
+
+    <section id="records" aria-labelledby="records-title">
+      <div class="section-head"><h2 id="records-title">Records, transitions and gates</h2><span class="eyebrow">03 / no implied promotion</span></div>
+      <p class="lifecycle">Planning → Submitted → In review ↔ Needs information → Quote ready → Accepted → Scheduled → Delivered</p>
+      <div class="grid">
+        <div><h3>What survives</h3><dl class="facts">
+          <dt>One request, several version histories</dt><dd>The request/reference stays the same. Aggregate version detects concurrent changes; brief revision identifies immutable requirements/contact/evidence snapshots. A same-input plan choice appends a plan version without rewriting priced terms.</dd>
+          <dt>Commercial records</dt><dd>Staff quote drafts remain private. Publication exposes exact terms; decline returns the request to In review. Acceptance freezes the quote, brief and selected plan or explicit None. Staff records one initial schedule against accepted work.</dd>
+          <dt>Material and findings</dt><dd>Image metadata versions, exact reviews, publication and organization entitlement are separate records. Finding review binds its cited pair. Changed review inputs invalidate the applicable approval; publication does not itself grant customer access.</dd>
+          <dt>Delivery and observations</dt><dd>A new delivery requires aligned supplied/requested dates, readable published pair and finding, active access, rights and actual private-file proof. The saved note is tied to its exact image/version and author; editing or deleting it cannot move that association.</dd>
+        </dl></div>
+        <div><h3>Who may do it</h3><dl class="facts">
+          <dt>Explicit simulation, real server guards</dt><dd>Fixed customer personas and separate Staff Admin entry use opaque server sessions. Current workspace membership, audience, context generation/token and CSRF checks decide each private action; knowing a record ID grants nothing.</dd>
+          <dt>Customer roles</dt><dd>Owner/Requester may write within permitted workspaces; Viewer reads. Offer acceptance/decline also requires the current Owner's organization-specific offer-selection grant. Customers can change only their own point observations.</dd>
+          <dt>Current permission after waiting</dt><dd>Protected bytes and saved-manifest reads check current authority before and after awaited file access. Browser context covers remove stale private views and revoke image Blob URLs; raw drafts stay scoped in tab memory.</dd>
+          <dt>Uncertain is not a new action</dt><dd>The unchanged retry keeps its command ID and payload. Authorized receipt recovery precedes new-action expiry/readiness tests, including after failed file preflight. Revoked authority still refuses a receipt.</dd>
+        </dl></div>
+      </div>
+      <p class="inline-links" style="margin-top:22px"><a href="../server/security.ts">Current-context guards</a><a href="../server/delivery.ts">Delivery's two receipt gates</a><a href="../server/material-files.ts">Protected file reads</a><a href="../server/observations.ts">Own-point commands</a><a href="spec.md#spec-records">Canonical record model</a></p>
+    </section>
+
+    <section id="technical-planning" aria-labelledby="planning-title">
+      <div class="section-head"><h2 id="planning-title">Real discovery and technical planning</h2><span class="eyebrow">04 / evidence, not taskability</span></div>
+      <div class="grid">
+        <div class="card"><h3>Current source → bounded calculation</h3><p>The full adopted SAR + Earth Resources snapshot supplies exact catalog identities and orbital records. Independently cited instrument/mode/band facts stay separate from group membership and orbital geometry. Missing evidence remains unknown; pixel spacing is not native resolution.</p><p>The globe uses a shared paused UTC, at most 200 positions and 50 paths. The server's bounded plan calculation checks sampled center-point LOS, applicable idealized nominal-center corridor and solar constraints. Selected, shortlisted, Follow and applied area remain independent.</p><p class="path"><a href="../server/orbital/repository.ts">repository.ts</a> → <a href="../server/orbital/plan.ts">calculateAssessment</a> → <a href="../server/orbital/constraints.ts">fixedChecks / instantaneousChecks</a></p></div>
+        <div class="card"><h3>Explicit choice → immutable evidence</h3><p>Automatic assessment does not save or submit. Edited instants get fresh checks; known required failures block a choice, and exact named unknowns require acknowledgement. Thermal nighttime policy and partial interval coverage remain unresolved where applicable.</p><p>A deliberate save retains one plan version and a private immutable manifest/digest. Live attachment references expire after 15 minutes; saved evidence instead uses current request permissions. A same-tab public handoff crosses only its guarded customer/workspace rotations. Restarted unfinished jobs become interrupted, while completed evidence persists.</p><p class="path"><a href="../server/orbital/assessment-service.ts">prepareSelection / readSavedManifest</a> → <a href="../server/plans.ts">saveProposedPlan</a> → <a href="../server/plan-records.ts">insertProposedPlan / freezeAcceptedPlan</a></p></div>
+      </div>
+      <p class="note" style="margin-top:20px">Model limits: WGS72 improved SGP4 with the stated Earth-frame approximation; 10-second samples and ≤1-second refinement of detected brackets can miss short events. Jobs stop at their execution/evaluation/output bounds and report incomplete coverage. A center-point opportunity or idealized corridor is not actual attitude, whole-area imageability, operator availability, booking, collection or a delivery promise.</p>
+      <p class="inline-links"><a href="question-plan-amendment.md#qp-spec-kernel">Approved model boundary</a><a href="../THIRD_PARTY.md">Source and licence limits</a></p>
+    </section>
+
+    <section id="source" aria-labelledby="source-title">
+      <div class="section-head"><h2 id="source-title">Where a change belongs</h2><span class="eyebrow">05 / actual source homes</span></div>
+      <dl class="tree">
+        <dt><a href="../client/App.tsx">client/App.tsx</a><br><a href="../client/styles/global.css">client/styles/</a></dt><dd>Routes and shared shell; black surfaces, warm ivory, restrained orange, Plex and square controls. Feature CSS stays beside its interface.</dd>
+        <dt><a href="../client/features/discovery/Discovery.tsx">client/features/discovery/</a><br><a href="../client/features/brief/BriefSheet.tsx">client/features/brief/</a></dt><dd>Question, filters, evidence, phrase/place disclosure, brief editing and reviewed save. <a href="../shared/discovery.ts">shared/discovery.ts</a> and <a href="../shared/validation.ts">shared/validation.ts</a> own reusable interpretation/validation; the server recomputes rather than trusting browser claims.</dd>
+        <dt><a href="../client/features/globe/ThreeGlobe.ts">client/features/globe/</a><br><a href="../shared/area-proposal.ts">shared/area-proposal.ts</a></dt><dd>Three.js rendering/picking, explicit Rotate/Select area, staged circles, camera and numeric fallback. Real prediction and labeled held-D0 demonstration layers remain separate.</dd>
+        <dt><a href="../client/features/planning/useProposedPlan.ts">client/features/planning/</a><br><a href="../server/orbital/assessment-service.ts">server/orbital/</a></dt><dd>Calculation ownership/cancellation, current checked options and saved-plan presentation; source/cache adapter, propagation, bounded numerical checks and private manifests. <a href="../shared/plan-contracts.ts">shared/plan-contracts.ts</a> defines their transport shapes.</dd>
+        <dt><a href="../client/features/workflow/WorkflowDetail.tsx">client/features/workflow/</a><br><a href="../client/features/tracking/TrackingPages.tsx">client/features/tracking/</a></dt><dd>Requests/Missions, quote decisions, clarification/revision and staff forms. <a href="../server/workflow.ts">server/workflow.ts</a> owns commercial transitions; <a href="../server/projections.ts">server/projections.ts</a> builds authorized read views.</dd>
+        <dt><a href="../client/features/results/ResultPages.tsx">client/features/results/</a><br><a href="../server/material-commands.ts">server/material-commands.ts</a></dt><dd>Staff material preparation/review and customer SatSuite. <a href="../server/material-records.ts">material-records.ts</a> computes current publication/access/readiness; <a href="../client/features/results/ImageStage.tsx">ImageStage.tsx</a> and <a href="../shared/image-view.ts">image-view.ts</a> handle comparison transforms and normalized points.</dd>
+        <dt><a href="../server/db/migrations/008-proposed-plans.sql">server/db/migrations/</a><br><a href="../demo/index.ts">demo/</a></dt><dd>Eight ordered migrations define durable constraints. Demo personas, catalog, tracks and supplied scene recipes are newly authored; initialization seeds no successful workflow, human review or note.</dd>
+        <dt><a href="../tests/domain/technical-plan.test.ts">tests/domain/</a> · <a href="../tests/api/plans.test.ts">tests/api/</a><br><a href="../tests/e2e/proposed-plan.spec.ts">tests/e2e/</a></dt><dd>Pure rules/math; real API/storage/authority; actual browser journeys. Generated source-response doubles and test databases are isolated from ordinary saved work. Release scripts live in <a href="../scripts/verify-clean-checkout.mjs">scripts/</a>.</dd>
+      </dl>
+    </section>
+
+    <section id="run" aria-labelledby="run-title">
+      <div class="section-head"><h2 id="run-title">Run it again</h2><span class="eyebrow">06 / one local origin</span></div>
+      <div class="grid">
+        <div><h3>Existing workspace</h3><p>Select Node <strong>24.22.1</strong> and npm <strong>11.19.1</strong>. From the project root, <code>npm start</code> reopens an already built compatible installation.</p><pre><code>source "$HOME/.nvm/nvm.sh"
+nvm use 24.22.1
+npm start</code></pre><p>Open <code>http://127.0.0.1:3000/</code> and keep that same origin. Before rebuilding an update, gracefully stop the actual listener; then use:</p><pre><code>npm run build
+npm run db:migrate
+npm run demo:init
+npm start</code></pre><p class="muted">Ordered migration/init preserves D0 and saved work. SQLite, private material, manifests and signing key live under the ignored local data root. Do not delete it to fix an update. No real login, API key or <code>.env</code> credential is required.</p></div>
+        <div><h3>Verification entry points</h3><pre><code>npm run verify:runtime
+npm run check
+npm run test:e2e</code></pre><p><code>check</code> runs type checks plus domain/API tests. <code>test:e2e</code> builds and runs Chromium/WebKit against an isolated temporary test root and port 3100; it does not use the ordinary workflow database.</p><p><code>npm run smoke:workspace</code> is a read-only public/denial probe of the running installation. <a href="../scripts/verify-clean-checkout.mjs">verify-clean-checkout.mjs</a> checks a fresh Git snapshot separately. The <a href="checklist.md#final-review">canonical evidence record</a> distinguishes actual passes, failed attempts, learner reports and open gates; generating this map passes none of them.</p><p class="muted">Full tests and acquisition can take time. The map itself performs no commands or network calls.</p></div>
+      </div>
+      <details><summary>First-run order on a fresh checkout</summary><p>Use the pinned runtime, then the exact order below. Initial dependencies/assets and installed Playwright browsers need network access; follow the <a href="../README.md#run-locally">README setup</a> for runtime installation and <a href="../README.md">browser prerequisites</a>.</p><pre><code>npm ci
+npm run verify:runtime
+npm run build:server
+npm run assets:fetch
+npm run db:migrate
+npm run demo:init
+npm run build:client
+npm start</code></pre><p>The local cached workflow works offline after setup. Fresh real orbital prediction still requires sufficiently fresh permitted cached elements. Source refresh and optional place lookup require their own deliberate network actions.</p></details>
+      <p class="note">Demonstration limits: fixed personas simulate access, authored Earth tracks are synthetic, and the supplied SAR comparison pair is illustrative artwork. Real catalog records and predictions do not imply operator agreement. Visible/SWIR/Thermal and Single-observation planning do not supply those products; actual optical/single-observation fulfillment, payments and real tasking remain outside this release.</p>
+    </section>
+
+    <section id="roadmap" aria-labelledby="roadmap-title">
+      <div class="section-head"><h2 id="roadmap-title">The full feature inventory stays visible</h2><span class="eyebrow">07 / 23 IDs · cut: none</span></div>
+      <p>Implemented subsets do not complete their broader feature families. The approved <a href="question-plan-amendment.md#qp-roadmap">23-ID affected roadmap</a> and <a href="scope.md#scope-roadmap">Now/Later/Cut scope</a> retain the complete boundary. Each ID below links to its canonical behavior or roadmap heading.</p>
+      <details><summary>Show all 23 feature IDs and retained boundaries</summary><div class="table-wrap"><table class="roadmap"><caption>Current connected path and the explicit work retained for later.</caption><thead><tr><th scope="col">Feature ID</th><th scope="col">Current subset</th><th scope="col">Retained Later</th></tr></thead><tbody>
+        <tr><td><a href="prd.md#prd-ui01-shell">UI-01</a></td><td>Console shell, responsive navigation and truthful data context.</td><td>Deferred destination bodies.</td></tr>
+        <tr><td><a href="prd.md#prd-disc01-discovery">DISC-01</a></td><td>Bounded local EO interpretation and visible Planned families.</td><td>Broader interpretation and operational other-family journeys.</td></tr>
+        <tr><td><a href="prd.md#prd-disc02-evidence">DISC-02</a></td><td>Adopted real sources, evidence/list/shortlist and technical options.</td><td>Other providers/groups and exhaustive catalog capability/admin breadth.</td></tr>
+        <tr><td><a href="prd.md#prd-globe01-demo">GLOBE-01</a></td><td>Real paused predictions, demo context, deliberate area and bounded checks.</td><td>History/playback and validated full-area sensor coverage.</td></tr>
+        <tr><td><a href="prd.md#prd-brief01-circle">BRIEF-01</a></td><td>Circle preview/apply/confirm, sourced place and numeric fallback.</td><td>Full maps/rectangles/undo and other target editors/providers.</td></tr>
+        <tr><td><a href="prd.md#prd-qp-plan-view">BRIEF-02</a></td><td>Single/comparison EO brief, four sensor categories and tentative plan.</td><td>Other-family/output fulfillment, anonymous claim and rich recovery.</td></tr>
+        <tr><td><a href="prd.md#auth-01">AUTH-01</a></td><td>Explicit demo identities and current-context guards.</td><td>Production identity providers and account/session administration.</td></tr>
+        <tr><td><a href="prd.md#ws-01">WS-01</a></td><td>Actual memberships, chooser and safe private return.</td><td>Workspace creation, invitations, claims and transfer.</td></tr>
+        <tr><td><a href="prd.md#ws-02">WS-02</a></td><td>Shared requests, brief/plan histories and Clarifications.</td><td>Cancellation/closure/reopening and richer recovery.</td></tr>
+        <tr><td><a href="prd.md#mission-01">MISSION-01</a></td><td>Chosen readouts, attention panels and grouped saved requests.</td><td>Directory/landing globe and broader filters/agenda depth.</td></tr>
+        <tr><td><a href="prd.md#mission-02">MISSION-02</a></td><td>Same tentative plan, quote, decision, staff schedule and result.</td><td>Real tracking/rebooking and wider engineering/cross-family depth.</td></tr>
+        <tr><td><a href="prd.md#prd-sr01-receipt">SR-01</a></td><td>Explicit Planning save, separate submission and durable receipt/reference.</td><td>Anonymous ownership/claim-email and broader recovery.</td></tr>
+        <tr><td><a href="prd.md#prd-qp-save-lifecycle">SR-02</a></td><td>Controlled lifecycle, review/revisions and accepted-plan freeze.</td><td>Assignments/cancellation/reopening/internal operations.</td></tr>
+        <tr><td><a href="prd.md#ws-01">TEAM-01</a></td><td>Current membership, role and separate offer authority.</td><td>Team/role/delegation management UI.</td></tr>
+        <tr><td><a href="prd.md#staff-01">STAFF-01</a></td><td>Separate staff workbench and bounded commercial/material actions.</td><td>Full operations, assignments, provisioning, rosters and MFA.</td></tr>
+        <tr><td><a href="scope.md#scope-roadmap">CAP-01</a></td><td>Customer-safe cited identity/instrument/mode facts and provenance.</td><td>Editorial offer administration and business-calendar engine.</td></tr>
+        <tr><td><a href="prd.md#sat-01">SAT-01</a></td><td>Result library, pair comparison, transforms and own points.</td><td>Broad libraries, advanced annotations/analysis and moderation.</td></tr>
+        <tr><td><a href="prd.md#sat-02">SAT-02</a></td><td>Reviewed/published/entitled synthetic SAR comparison and strict-date delivery.</td><td>Actual optical/single supply and general ingest/processing/rights administration.</td></tr>
+        <tr><td><a href="prd.md#sat-03">SAT-03</a></td><td>Basic reviewed EO answer, limitations, exact citations and withdrawal.</td><td>Non-EO dossiers, georeference/maps/export and rich replacement.</td></tr>
+        <tr><td><a href="scope.md#scope-roadmap">NEI-01</a></td><td>Roadmap definition.</td><td>Spacecraft-observation goals, opportunities and campaigns.</td></tr>
+        <tr><td><a href="scope.md#scope-roadmap">NEI-02</a></td><td>Roadmap definition.</td><td>Evidence-gated observer/target encounter visualization.</td></tr>
+        <tr><td><a href="scope.md#scope-roadmap">NEI-03</a></td><td>Roadmap definition.</td><td>Conditional planning contracts, campaign evidence and RFQ drafts.</td></tr>
+        <tr><td><a href="spec.md#spec-failure">OPS-01</a></td><td>Honesty, permissions, privacy, persistence and failure correctness.</td><td>Notifications/outbox/transports, retry administration and wider adapters.</td></tr>
+      </tbody></table></div></details>
+      <p class="muted">The four families retain their distinct meanings: Earth observation, Space observation, Communications and Docker Doctor — In-orbit servicing. Only the agreed EO slice is operational here. NEI is spacecraft observation along existing orbits; it is not rendezvous, maneuver design or a guaranteed diagnosis.</p>
+    </section>
+  </main>
+  <footer>
+    <p><span class="tag">Snapshot</span> Generated 26 October 2026 from verified application commit <code>067cf5050c68cfa53d4d0470f9908c93f5fb675a</code>. This is a source map, not a claim that every release or learning gate is complete. Code and plans can drift; check <a href="checklist.md">the canonical checklist</a> for actual status.</p>
+    <p>Reopen <code>devpost/app-map.html</code> from the repository in a browser. This standalone page has no scripts, CDN, analytics or network dependency; its fonts and links are relative local files. Source notices remain in <a href="../THIRD_PARTY.md">THIRD_PARTY.md</a>.</p>
+  </footer>
+</body>
+</html>

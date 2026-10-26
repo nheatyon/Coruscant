@@ -1,0 +1,20 @@
+.observation-intent{border:0;padding:0;margin:20px 0}.observation-intent legend{font-size:18px;font-weight:450;margin-bottom:12px}.intent-options{display:flex;gap:12px;flex-wrap:wrap}.intent-options .check{border:1px solid var(--rule,#303336);padding:10px 12px;min-height:44px;flex:1;min-width:200px}.intent-options .check:has(input:checked){border-color:var(--accent,#f5913a);background:#14100b}.planning-boundary{border-left:2px solid #f5913a;padding-left:12px}.planning-stage-notice{border:1px solid var(--rule,#303336);padding:16px;margin:20px 0}.planning-stage-notice h2{font-size:18px;margin:0 0 8px}.planning-state-actions>.button{min-height:44px;margin:8px 12px 8px 0}.planning-state-header{margin:16px 0}.planning-status-neutral{color:var(--ink,#ece9e2)}@media(max-width:767px){.intent-options{display:block}.intent-options .check{margin-bottom:8px;min-width:0}.planning-state-actions>.button{width:100%;margin-right:0}}
+.place-query-controls { margin-top: 12px; }
+.place-query-controls .place-disclosure { font-size: 11px; line-height: 1.5; color: var(--muted); margin: 10px 0 14px; }
+.place-query-actions, .place-proposal-actions { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; }
+.place-query-actions { margin-top: 12px; }
+.place-lookup { padding: 16px; border: 1px solid var(--rule); background: var(--panel); color: var(--ink); margin: 16px 0; overflow-wrap: anywhere; }
+.place-lookup h3 { margin: 8px 0; font-size: 16px; }
+.place-lookup p { margin: 8px 0; }
+.place-candidates { padding: 0; list-style: none; display: grid; gap: 8px; }
+.place-candidates button { width: 100%; min-height: 44px; display: flex; flex-direction: column; gap: 6px; text-align: left; align-items: flex-start; white-space: normal; }
+.place-candidates button[aria-pressed=true] { border-color: var(--accent); }
+.place-candidates small { font-size: 11px; }
+.area-proposal-summary { border-top: 1px solid var(--rule); margin-top: 12px; padding-top: 12px; }
+.compact-place-lookup { margin: 8px 0; }
+.place-lookup .notice { margin: 8px 0; }
+.place-proposal-actions .button { min-height: 44px; }
+@media(max-width:767px) { .place-proposal-actions { display: grid; grid-template-columns: 1fr; }.place-proposal-actions .button { width: 100%; }.place-lookup { padding: 12px; } }
+
+/* Square visible state; the full44px label remains the radio hit target. */
+.intent-options input[type="radio"]{appearance:none;width:16px;height:16px;min-width:16px;min-height:16px;flex:0 0 16px;margin:0;border:1px solid var(--muted);border-radius:0;background:var(--panel);align-self:center}.intent-options input[type="radio"]:checked{border-color:var(--accent);background:var(--accent);box-shadow:inset 0 0 0 4px var(--panel)}.intent-options input[type="radio"]:focus-visible{outline:2px solid var(--ink);outline-offset:4px}

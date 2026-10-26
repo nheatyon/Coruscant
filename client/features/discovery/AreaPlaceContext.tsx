@@ -1,0 +1,16 @@
+import type { AreaChoice } from '../../../shared/contracts.js';
+import type { PlaceLookupResult, PlaceSourceReference, PlaceSourceSnapshot } from '../../../shared/place-contracts.js';
+import { areaSignature } from '../../../shared/validation.js';
+import { formatRadiusKm } from '../../lib/format.js';
+import './area-place-context.css';
+
+/** Names, lookup previews, application and independent size confirmation stay distinct. */
+export function AreaPlaceContext({ area, confirmation, source, lookup, needsReview = false, compact = false }: { area: AreaChoice | null; confirmation: string | null; source?: PlaceSourceReference | PlaceSourceSnapshot | null; lookup?: PlaceLookupResult | null; needsReview?: boolean; compact?: boolean }) {
+  const confirmed = !!area && confirmation === areaSignature(area);
+  // A raw public reference carries no source coordinates. Use only its exact
+  // already-returned candidate, or a server-normalized snapshot; never guess.
+  const candidate = source && lookup?.version === source.lookupVersion ? lookup.candidates.find(item => item.id === source.candidateId) : null;
+  const original = source && 'sourceCenter' in source ? { ...source.sourceCenter, label: source.label, radiusKm: source.radiusAssumptionKm } : candidate ? { latitude: candidate.latitude, longitude: candidate.longitude, label: candidate.label, radiusKm: 25 } : null;
+  const adjusted = !!area && !!original && (area.latitude !== original.latitude || area.longitude !== original.longitude || area.radiusKm !== original.radiusKm);
+  return <section className={`area-place-context ${compact ? 'compact-area-context' : ''}`} aria-label="Current area and place names">{area ? <><p className="area-place-summary"><strong>{needsReview ? 'Retained AOI · question review needed' : 'Applied AOI'}</strong><span className="mono">{area.latitude.toFixed(4)}°, {area.longitude.toFixed(4)}° · {formatRadiusKm(area.radiusKm)} km radius</span><span>{confirmed ? 'Size confirmed' : 'Applied · size confirmation needed'}</span></p><p>{needsReview ? 'Not resolved from the new description. Apply a proposed location or explicitly keep this existing target for the current question.' : source ? `${adjusted && original ? `Adjusted from ${original.label}. Original returned center ${original.latitude.toFixed(5)}°, ${original.longitude.toFixed(5)}°; starting radius ${formatRadiusKm(original.radiusKm)} km. ` : `Applied from the sourced place lookup for “${source.sourcePhrase}”. `}The actual circle above is the target; its starting radius is a planning assumption, not a place boundary.` : `This circle was deliberately ${area.method === 'globe' ? 'drawn on the globe' : 'chosen using coordinates'}. No place lookup establishes that a name in the question is here. Check the actual centre and radius.`}</p></> : <><p className="area-place-summary"><strong>No area applied</strong></p><p>{compact ? 'A place label or preview does not place a target. Apply a lookup, drawing or numeric proposal, then confirm its size.' : 'Use the explicit disclosed place search, draw a circle or enter coordinates. Apply the proposed circle deliberately, then confirm its size separately. Names in your question never position or confirm an area by themselves.'}</p></>}</section>;
+}

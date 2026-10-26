@@ -1,0 +1,48 @@
+{
+  "name": "coruscant-local-demo",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": "24.22.1",
+    "npm": "11.19.1"
+  },
+  "packageManager": "npm@11.19.1",
+  "scripts": {
+    "verify:runtime": "node scripts/verify-runtime.mjs",
+    "build:server": "tsc -p tsconfig.server.json && node scripts/copy-runtime-assets.mjs",
+    "build:client": "tsc -p tsconfig.client.json --noEmit && vite build",
+    "build": "npm run verify:runtime && npm run build:server && npm run build:client",
+    "assets:fetch": "node dist/node/scripts/fetch-assets.js",
+    "db:migrate": "node dist/node/scripts/migrate.js",
+    "demo:init": "node dist/node/scripts/init-demo.js",
+    "smoke:workspace": "node dist/node/scripts/smoke-workspace.js",
+    "start": "npm run verify:runtime && node dist/node/server/index.js",
+    "dev": "npm run build && npm start",
+    "typecheck": "tsc -p tsconfig.server.json --noEmit && tsc -p tsconfig.client.json --noEmit",
+    "test": "npm run build:server && node --test dist/node/tests/domain/*.test.js dist/node/tests/api/*.test.js",
+    "check": "npm run typecheck && npm test",
+    "test:e2e": "npm run build && playwright test"
+  },
+  "dependencies": {
+    "@fastify/cookie": "11.1.3",
+    "@fastify/static": "10.1.6",
+    "@js-temporal/polyfill": "0.5.1",
+    "fastify": "5.12.7",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "react-router": "7.18.4",
+    "satellite.js": "7.1.0",
+    "three": "0.186.1"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.64.1",
+    "@types/node": "24.19.2",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@types/three": "0.186.0",
+    "@vitejs/plugin-react": "6.1.2",
+    "typescript": "7.0.2",
+    "vite": "8.3.5"
+  }
+}
