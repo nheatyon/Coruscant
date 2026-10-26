@@ -1,0 +1,4 @@
+-- Source definitions are private generated artwork, never a prepared result or a human review.
+CREATE TABLE demo_source_assets (id TEXT PRIMARY KEY, role TEXT NOT NULL CHECK(role IN ('BASELINE','RECENT')), content_version INTEGER NOT NULL CHECK(content_version>0), filename TEXT NOT NULL UNIQUE, content_hash TEXT NOT NULL, recipe_version TEXT NOT NULL, illustrative_date TEXT NOT NULL, width INTEGER NOT NULL CHECK(width>0), height INTEGER NOT NULL CHECK(height>0), definition_json TEXT NOT NULL CHECK(json_valid(definition_json))) STRICT;
+CREATE TRIGGER source_asset_no_update BEFORE UPDATE ON demo_source_assets BEGIN SELECT RAISE(ABORT,'Registered source definitions are immutable'); END;
+CREATE TRIGGER source_asset_no_delete BEFORE DELETE ON demo_source_assets BEGIN SELECT RAISE(ABORT,'Registered source definitions are immutable'); END;

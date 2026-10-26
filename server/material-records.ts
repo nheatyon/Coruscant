@@ -1,0 +1,84 @@
+import type { NormalizedBrief } from '../shared/contracts.js';
+import type { AcceptedDateContext, ByteAvailability, CustomerResultProjection, DeliveryReadiness, FindingReviewRecord,
+  FindingVersionSnapshot, ImageApprovalRecord, ImageVersionSnapshot, NormalizedResultDraft, PairDateComparison,
+  PublishedFinding, PublishedImage, StaffResultProjection, ReviewStamp } from '../shared/material.js';
+import { compareDateContext, resultRightsValid, DELIVERY_DATE_BLOCKER } from '../shared/material.js';
+import type { Database } from './db/database.js';
+import { hash, memberships, type Clock, type Session } from './security.js';
+import { quoteRow, requestRow } from './projections.js';
+import { deliveryForRequest } from './delivery-records.js';
+import { projectObservations } from './observations.js';
+
+export function canonical(value:unknown):string{if(Array.isArray(value))return `[${value.map(canonical).join(',')}]`;if(value!==null&&typeof value==='object')return `{${Object.entries(value).sort(([a],[b])=>a.localeCompare(b,'en')).map(([key,v])=>`${JSON.stringify(key)}:${canonical(v)}`).join(',')}}`;return JSON.stringify(value);}
+export const digest=(value:unknown)=>hash(canonical(value));
+export interface ResultRow {id:string;request_id:string;organization_id:string;accepted_quote_id:string;brief_revision:number;material_version:number;metadata_json:string;created_by:string;created_at:string;updated_at:string}
+export interface AssetRow {id:string;result_id:string;organization_id:string;role:'BASELINE'|'RECENT';state:'REVIEW'|'PUBLISHED';current_version:number;published_version:number|null;current_review_id:string|null;published_at:string|null;publish_reason:string|null}
+export interface FileRow {id:string;relative_path:string;sha256:string;mime_type:string;byte_size:number;width:number;height:number}
+export interface FindingRow {id:string;result_id:string;organization_id:string;state:'DRAFT'|'REVIEW'|'PUBLISHED'|'WITHDRAWN';current_version:number;published_version:number|null;current_review_id:string|null;created_by:string;created_at:string;updated_at:string;published_at:string|null;withdrawn_at:string|null;withdrawal_reason:string|null}
+export type Availability=Map<string,ByteAvailability>;
+export const imageKey=(image:{assetId:string;contentVersion:number})=>`${image.assetId}:${image.contentVersion}`;
+export function resultRow(db:Database,id:string):ResultRow|undefined{return db.prepare('SELECT * FROM result_sets WHERE id=?').get(id) as unknown as ResultRow|undefined;}
+export function requestResult(db:Database,requestId:string):ResultRow|undefined{return db.prepare('SELECT * FROM result_sets WHERE request_id=?').get(requestId) as unknown as ResultRow|undefined;}
+export function assets(db:Database,resultId:string):AssetRow[]{return db.prepare("SELECT * FROM image_assets WHERE result_id=? ORDER BY CASE role WHEN 'BASELINE' THEN 0 ELSE 1 END").all(resultId) as unknown as AssetRow[];}
+export function assetRow(db:Database,id:string):AssetRow|undefined{return db.prepare('SELECT * FROM image_assets WHERE id=?').get(id) as unknown as AssetRow|undefined;}
+export function imageSnapshot(db:Database,assetId:string,version:number):ImageVersionSnapshot|undefined{const row=db.prepare('SELECT metadata_json FROM image_versions WHERE asset_id=? AND content_version=?').get(assetId,version) as {metadata_json:string}|undefined;return row?JSON.parse(row.metadata_json) as ImageVersionSnapshot:undefined;}
+export function imageFile(db:Database,assetId:string,version:number):FileRow|undefined{return db.prepare('SELECT f.* FROM material_files f JOIN image_versions v ON v.material_file_id=f.id WHERE v.asset_id=? AND v.content_version=?').get(assetId,version) as unknown as FileRow|undefined;}
+export function findingRow(db:Database,resultId:string):FindingRow|undefined{return db.prepare('SELECT * FROM findings WHERE result_id=?').get(resultId) as unknown as FindingRow|undefined;}
+export function findingSnapshot(db:Database,id:string,version:number):FindingVersionSnapshot{
+  const row=db.prepare('SELECT * FROM finding_versions WHERE finding_id=? AND content_version=?').get(id,version) as {finding_id:string;result_id:string;content_version:number;answer:string;limitations:string;additional_sources:string;created_at:string};
+  const refs=db.prepare('SELECT asset_id AS assetId,image_version AS contentVersion FROM finding_citations WHERE finding_id=? AND finding_version=? ORDER BY ordinal').all(id,version) as unknown as FindingVersionSnapshot['citations'];
+  return {findingId:id,resultId:row.result_id,contentVersion:version,answer:row.answer,limitations:row.limitations,additionalSources:row.additional_sources,citations:refs,createdAt:row.created_at};
+}
+export function acceptedContext(db:Database,result:ResultRow):AcceptedDateContext{
+  const quote=quoteRow(db,result.accepted_quote_id)!;const brief=JSON.parse(quote.priced_brief_json) as NormalizedBrief;
+  return {requestId:result.request_id,organizationId:result.organization_id,acceptedQuoteId:result.accepted_quote_id,briefRevision:result.brief_revision,baselineReferenceDate:brief.baselineDate,recentReferenceDate:brief.recentDate,requestTimezone:brief.timezone};
+}
+export function dateComparison(context:AcceptedDateContext,images:ImageVersionSnapshot[]):PairDateComparison{
+  return compareDateContext(context,images);
+}
+export function currentImages(db:Database,result:ResultRow):ImageVersionSnapshot[]{return assets(db,result.id).map(asset=>imageSnapshot(db,asset.id,asset.current_version)!);}
+export function rightsValid(metadata:NormalizedResultDraft,clock:Clock):boolean{return resultRightsValid(metadata,clock());}
+export function imageFacts(db:Database,result:ResultRow,image:ImageVersionSnapshot){return {acceptedContextDigest:digest(acceptedContext(db,result)),imageDigest:digest(image),rightsDigest:digest(JSON.parse(result.metadata_json))};}
+export function findingFacts(db:Database,result:ResultRow,finding:FindingVersionSnapshot){return {acceptedContextDigest:digest(acceptedContext(db,result)),pairDigest:digest({images:currentImages(db,result),comparison:dateComparison(acceptedContext(db,result),currentImages(db,result))}),findingDigest:digest(finding),rightsDigest:digest(JSON.parse(result.metadata_json))};}
+export function imageReview(db:Database,id:string):ImageApprovalRecord|undefined{
+  const row=db.prepare('SELECT r.*,a.name AS actor_name FROM image_reviews r JOIN actors a ON a.id=r.reviewer_id WHERE r.id=?').get(id) as {id:string;asset_id:string;content_version:number;reviewer_id:string;actor_name:string;reviewed_at:string;reason:string;facts_json:string;date_snapshot_json:string;discrepancy_acknowledged:number}|undefined;
+  return row?{id:row.id,assetId:row.asset_id,contentVersion:row.content_version,actorId:row.reviewer_id,actorName:row.actor_name,occurredAt:row.reviewed_at,reason:row.reason,discrepancyAcknowledged:row.discrepancy_acknowledged===1,dateComparison:JSON.parse(row.date_snapshot_json),...JSON.parse(row.facts_json)}:undefined;
+}
+export function findingReview(db:Database,id:string):FindingReviewRecord|undefined{
+  const row=db.prepare('SELECT r.*,a.name AS actor_name FROM finding_reviews r JOIN actors a ON a.id=r.reviewer_id WHERE r.id=?').get(id) as {id:string;finding_id:string;content_version:number;reviewer_id:string;actor_name:string;reviewed_at:string;reason:string;facts_json:string;date_snapshot_json:string;checklist_json:string;discrepancy_acknowledged:number;limitations_explain_date_discrepancy:number}|undefined;
+  return row?{id:row.id,findingId:row.finding_id,contentVersion:row.content_version,actorId:row.reviewer_id,actorName:row.actor_name,occurredAt:row.reviewed_at,reason:row.reason,discrepancyAcknowledged:row.discrepancy_acknowledged===1,limitationsExplainDateDiscrepancy:row.limitations_explain_date_discrepancy===1,dateComparison:JSON.parse(row.date_snapshot_json),checklist:JSON.parse(row.checklist_json),...JSON.parse(row.facts_json)}:undefined;
+}
+const stamp=(review:ReviewStamp):ReviewStamp=>({id:review.id,actorId:review.actorId,actorName:review.actorName,occurredAt:review.occurredAt});
+export function imageApprovalValid(db:Database,result:ResultRow,asset:AssetRow):boolean{if(!asset.current_review_id)return false;const review=imageReview(db,asset.current_review_id);return !!review&&review.contentVersion===asset.current_version&&digest({acceptedContextDigest:review.acceptedContextDigest,imageDigest:review.imageDigest,rightsDigest:review.rightsDigest})===digest(imageFacts(db,result,imageSnapshot(db,asset.id,asset.current_version)!));}
+export function findingReviewValid(db:Database,result:ResultRow,finding:FindingRow):boolean{if(!finding.current_review_id)return false;const review=findingReview(db,finding.current_review_id);return !!review&&review.contentVersion===finding.current_version&&digest({acceptedContextDigest:review.acceptedContextDigest,pairDigest:review.pairDigest,findingDigest:review.findingDigest,rightsDigest:review.rightsDigest})===digest(findingFacts(db,result,findingSnapshot(db,finding.id,finding.current_version)));}
+export const materialUrl=(id:string,version:number,variant:'thumbnail'|'preview')=>`/api/material/${id}/versions/${version}/${variant}`;
+export function publishedImage(db:Database,asset:AssetRow,availability:Availability):PublishedImage|null{
+  if(asset.published_version===null||!asset.current_review_id||!asset.published_at)return null;const image=imageSnapshot(db,asset.id,asset.published_version)!;const review=imageReview(db,asset.current_review_id)!;
+  return {...image,state:'PUBLISHED',review:stamp(review),publishedAt:asset.published_at,previewUrl:materialUrl(asset.id,image.contentVersion,'preview'),thumbnailUrl:materialUrl(asset.id,image.contentVersion,'thumbnail'),availability:availability.get(imageKey(image))??'NOT_CHECKED'};
+}
+export function publishedFinding(db:Database,result:ResultRow,availability:Availability):PublishedFinding|null{
+  const finding=findingRow(db,result.id);if(!finding||finding.state!=='PUBLISHED'||!finding.published_version||!finding.current_review_id||!finding.published_at)return null;
+  const snapshot=findingSnapshot(db,finding.id,finding.published_version);return {...snapshot,state:'PUBLISHED',review:stamp(findingReview(db,finding.current_review_id)!),publishedAt:finding.published_at,citations:snapshot.citations.map(ref=>{const image=imageSnapshot(db,ref.assetId,ref.contentVersion)!;return {...ref,ordinal:image.role==='BASELINE'?1:2,label:image.role==='BASELINE'?'Baseline':'Recent',role:image.role,name:image.metadata.name,illustrativeDate:image.origin.illustrativeDate,availability:availability.get(imageKey(ref))??'NOT_CHECKED'};})};
+}
+export function entitlement(db:Database,result:ResultRow):StaffResultProjection['access']{
+  const row=db.prepare('SELECT e.*,a.name AS actor_name FROM result_entitlements e JOIN actors a ON a.id=e.granted_by WHERE e.result_id=? AND e.organization_id=?').get(result.id,result.organization_id) as {active:number;version:number;expires_at:string|null;reason:string;granted_by:string;granted_at:string;actor_name:string}|undefined;
+  return row?{organizationId:result.organization_id,active:row.active===1,version:row.version,expiresAt:row.expires_at,reason:row.reason,actorId:row.granted_by,actorName:row.actor_name,occurredAt:row.granted_at}:null;
+}
+export function customerMaterialAllowed(db:Database,result:ResultRow,clock:Clock):boolean{const access=entitlement(db,result);return rightsValid(JSON.parse(result.metadata_json) as NormalizedResultDraft,clock)&&!!access?.active&&(!access.expiresAt||access.expiresAt>clock().toISOString());}
+export function projectCustomerResult(db:Database,result:ResultRow,availability:Availability,session:Session,clock:Clock):CustomerResultProjection{
+  const request=requestRow(db,result.request_id)!;const images=assets(db,result.id).map(asset=>publishedImage(db,asset,availability)).filter((image):image is PublishedImage=>image!==null);
+  const accepted=acceptedContext(db,result);const member=memberships(db,session.actor_id!).find(member=>member.organizationId===result.organization_id);
+  return {id:result.id,requestId:result.request_id,requestVersion:request.aggregate_version,briefRevision:request.current_brief_revision,organizationId:result.organization_id,requestReference:request.reference,question:JSON.parse(quoteRow(db,result.accepted_quote_id)!.priced_brief_json).purpose,metadata:JSON.parse(result.metadata_json),acceptedContext:accepted,dateComparison:dateComparison(accepted,images),images,finding:publishedFinding(db,result,availability),observations:projectObservations(db,result,session.actor_id!,!!member&&member.role!=='VIEWER'),delivery:deliveryForRequest(db,request.id),contextGeneration:session.context_generation,serverNow:clock().toISOString()};
+}
+export function projectStaffResult(db:Database,result:ResultRow,availability:Availability,clock:Clock):StaffResultProjection{
+  const metadata=JSON.parse(result.metadata_json) as NormalizedResultDraft;const request=requestRow(db,result.request_id)!;const accepted=acceptedContext(db,result);const current=currentImages(db,result);const comparison=dateComparison(accepted,current);const finding=findingRow(db,result.id);const access=entitlement(db,result);
+  const images=assets(db,result.id).map(asset=>{const approval=asset.current_review_id?imageReview(db,asset.current_review_id)??null:null;const valid=imageApprovalValid(db,result,asset);const currentVersion=imageSnapshot(db,asset.id,asset.current_version)!;const reviews=(db.prepare('SELECT id FROM image_reviews WHERE asset_id=? ORDER BY reviewed_at,rowid').all(asset.id) as {id:string}[]).map(row=>imageReview(db,row.id)!);return {id:asset.id,role:asset.role,state:asset.state,currentVersion,publishedVersion:publishedImage(db,asset,availability),approval,approvalValid:valid,reviews,previewUrl:materialUrl(asset.id,asset.current_version,'preview'),blockers:[...(!valid?['Approve this exact image version before publication.']:[]),...(!rightsValid(metadata,clock)?['Valid licence and permitted use are required.']:[])]};});
+  const published=publishedFinding(db,result,availability);const validFinding=!!finding&&findingReviewValid(db,result,finding);
+  const allFiles=current.length===2&&current.every(image=>availability.get(imageKey(image))==='AVAILABLE');const fileChecks:ByteAvailability=current.some(image=>availability.get(imageKey(image))==='UNAVAILABLE')?'UNAVAILABLE':allFiles?'AVAILABLE':'NOT_CHECKED';
+  const blockers:string[]=[];if(request.status!=='Scheduled')blockers.push(request.status==='Delivered'?'Delivery is already recorded; a new delivery is unavailable.':'An initial schedule is required before delivery.');if(images.length!==2||images.some(image=>!image.publishedVersion||!image.approvalValid))blockers.push('The complete reviewed Baseline and Recent pair must be Published.');if(!published||!validFinding)blockers.push('A current reviewed, Published finding citing this pair is required.');if(!rightsValid(metadata,clock))blockers.push('Valid licence and permitted use are required.');if(!access?.active||access.expiresAt&&access.expiresAt<=clock().toISOString())blockers.push('Organization access must be granted and current.');if(comparison.status==='DIFFERENT')blockers.push(DELIVERY_DATE_BLOCKER);if(comparison.status==='INCOMPLETE')blockers.push('Comparison date context is incomplete.');if(!allFiles)blockers.push('Both required private image files must be readable.');
+  const intendedMember=db.prepare("SELECT 1 FROM memberships m JOIN actors a ON a.id=m.actor_id WHERE m.organization_id=? AND m.active=1 AND a.active=1 AND a.audience='CUSTOMER' LIMIT 1").get(result.organization_id);
+  if(!intendedMember)blockers.push('An active customer membership in the intended organization is required.');
+  const readiness:DeliveryReadiness={ready:blockers.length===0,blockers,dateAlignment:comparison.status,fileChecks};
+  const history=db.prepare('SELECT e.id,e.kind AS type,a.name AS actorName,e.occurred_at AS occurredAt,e.reason AS message FROM material_events e JOIN actors a ON a.id=e.actor_id WHERE e.result_id=? ORDER BY e.occurred_at,e.rowid').all(result.id) as unknown as StaffResultProjection['history'];
+  return {id:result.id,requestId:result.request_id,organizationId:result.organization_id,requestReference:request.reference,question:JSON.parse(quoteRow(db,result.accepted_quote_id)!.priced_brief_json).purpose,metadata,materialVersion:result.material_version,acceptedContext:accepted,dateComparison:comparison,images,finding:finding?{id:finding.id,state:finding.state,currentVersion:findingSnapshot(db,finding.id,finding.current_version),review:finding.current_review_id?findingReview(db,finding.current_review_id)??null:null,reviewValid:validFinding,publishedVersion:published,blockers:!validFinding?['Review the exact finding and current pair before publication.']:[]}:null,access,readiness,history,delivery:deliveryForRequest(db,request.id)};
+}
