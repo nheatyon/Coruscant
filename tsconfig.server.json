@@ -1,0 +1,9 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "module": "NodeNext", "moduleResolution": "NodeNext", "lib": ["ES2023"],
+    "types": ["node"], "rootDir": ".", "outDir": "dist/node"
+  },
+  "include": ["server/**/*.ts", "shared/**/*.ts", "demo/**/*.ts", "scripts/**/*.ts", "tests/domain/**/*.ts", "tests/api/**/*.ts", "tests/helpers/**/*.ts"],
+  "exclude": ["client", "dist", "node_modules", ".local", "tests/e2e"]
+}
